@@ -3,7 +3,6 @@ package me.moop.mytwitter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.sql.SQLException;
 import java.util.ArrayList;
 
 import org.apache.http.HttpResponse;
@@ -23,15 +22,11 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.j256.ormlite.android.apptools.OpenHelperManager;
-import com.j256.ormlite.dao.Dao;
-
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -41,12 +36,10 @@ public class TweetsActivity extends Activity {
 	TextView mTxtvTitle;
 
 	ProgressDialog mProgressDialog;
+	String mUserName;
+
 	ArrayList<Tweet> mTweets;
 	ListView mLvTweets;
-
-	DatabaseHelper mDatabaseHelper;
-
-	private TwitterUser mTwitterUser;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -58,25 +51,27 @@ public class TweetsActivity extends Activity {
 
 		Intent intent = getIntent();
 		Bundle extrasBundle = intent.getExtras();
-		String userName = extrasBundle.getString("twitter_user_name");
-		try {
-			mTwitterUser = getDatabaseHelper().getTwitterUsersDao().queryForId(userName.toLowerCase());
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
+		mUserName = extrasBundle.getString("twitter_user_name");
 
 		updateView();
 
-		downloadOrShowFromDb();
+		startDownloadingTweets();
 	}
 
 	private void updateView() {
-		mTxtvTitle.setText(mTwitterUser.getUserName());
+		mTxtvTitle.setText(mUserName);
 
 		if (mTweets != null){
 			TweetsListAdapter tweetsListAdapter = new TweetsListAdapter(this, mTweets);
 			mLvTweets.setAdapter(tweetsListAdapter);
 		}
+	}
+
+	private void startDownloadingTweets() {
+		mProgressDialog = new ProgressDialog(this);
+		mProgressDialog.setMessage("Bezig met het ophalen van gegevens...");
+		mProgressDialog.show();
+		new DownloadTweetsTask().execute();
 	}
 
 	private DefaultHttpClient createHttpClient() {
@@ -99,7 +94,7 @@ public class TweetsActivity extends Activity {
 		protected Void doInBackground(Void... args) {
 			String encodedUserName= "";
 			try {
-				encodedUserName= URLEncoder.encode(mTwitterUser.getUserName(), "utf-8");
+				encodedUserName= URLEncoder.encode(mUserName, "utf-8");
 			} catch (UnsupportedEncodingException e) {
 				e.printStackTrace();
 			}
@@ -131,7 +126,8 @@ public class TweetsActivity extends Activity {
 		protected void onPostExecute(Void arg) {
 			mProgressDialog.dismiss();
 			if (mStatusCode  == 200){
-				saveToDbAndShow(mResultString);
+				processResults(mResultString);
+				updateView();
 			}
 			else if (mStatusCode  == 401){
 				Toast.makeText(TweetsActivity.this, "De timeline van deze gebruiker is niet publiek toegankelijk.", Toast.LENGTH_LONG).show();
@@ -144,62 +140,20 @@ public class TweetsActivity extends Activity {
 			}
 		}
 
-	}
-	
-	private void downloadOrShowFromDb() {
-		if (SystemClock.elapsedRealtime() - mTwitterUser.getLastTweetsUpdate() < 1000*60*1){
-			mTweets = new ArrayList<Tweet>();
-			mTweets.addAll(mTwitterUser.getTweets());
-			updateView();
-		} else{
-			mProgressDialog = new ProgressDialog(this);
-			mProgressDialog.setMessage("Bezig met het ophalen van gegevens...");
-			mProgressDialog.show();
-			new DownloadTweetsTask().execute();
-		}
-	}
+	}	
 
-	private void saveToDbAndShow(String resultString) {
+	private void processResults(String resultString) {
+		mTweets = new ArrayList<Tweet>();
 		try {
 			JSONArray jSONArray = new JSONArray(resultString);
-			ArrayList<Tweet> tweets = new ArrayList<Tweet>();
 			for (int counter = 0; counter < jSONArray.length() ; counter ++){
 				JSONObject jSONObject = jSONArray.getJSONObject(counter);
-				Tweet tweet = new Tweet(jSONObject, mTwitterUser);
-				tweets.add(tweet);
+				Tweet tweet = new Tweet(jSONObject);
+				mTweets.add(tweet);
 			}
-			Dao<Tweet, Long> tweetsDao = getDatabaseHelper().getTweetsDao();
-			tweetsDao.delete(mTwitterUser.getTweets());
-			
-			mTwitterUser.setTweets(tweets);
-			mTwitterUser.setLastTweetsUpdate(SystemClock.elapsedRealtime());
-			
-			Dao<TwitterUser, String> twitterUsersDao = getDatabaseHelper().getTwitterUsersDao();
-			twitterUsersDao.update(mTwitterUser);
-
-			mTweets = tweets;
-			updateView();
 		} catch (JSONException e) {
 			e.printStackTrace();
-		} catch (SQLException e) {
-			e.printStackTrace();
 		}
-	}
-
-	@Override
-	protected void onDestroy() {
-		super.onDestroy();
-		if (mDatabaseHelper != null) {
-			OpenHelperManager.releaseHelper();
-			mDatabaseHelper = null;
-		}
-	}
-
-	private DatabaseHelper getDatabaseHelper() {
-		if (mDatabaseHelper == null) {
-			mDatabaseHelper = OpenHelperManager.getHelper(this, DatabaseHelper.class);
-		}
-		return mDatabaseHelper;
 	}
 
 
