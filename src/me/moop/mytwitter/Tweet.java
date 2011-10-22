@@ -11,15 +11,8 @@ import com.j256.ormlite.field.DatabaseField;
 
 public class Tweet {
 
-	@DatabaseField(id = true)
 	long mId;
-	@DatabaseField(foreign = true)
-	TwitterUser mTwitterUser;
-	
-	@DatabaseField
 	Date mCreatedAt;
-	
-	@DatabaseField
 	String mText;
 	
 	static SimpleDateFormat sEnglishSimpleDateFormat;
