@@ -17,8 +17,6 @@ public class Tweet {
 	
 	static SimpleDateFormat sEnglishSimpleDateFormat;
 	
-	private Tweet(){
-	}
 
 	public Tweet(JSONObject jSONObject, TwitterUser twitterUser){
 		String dateString = jSONObject.optString("created_at");
