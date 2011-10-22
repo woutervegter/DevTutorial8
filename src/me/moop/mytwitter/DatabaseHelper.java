@@ -15,7 +15,6 @@ public class DatabaseHelper extends OrmLiteSqliteOpenHelper {
 	static final int DATABASE_VERSION = 2;
 
 	Dao<TwitterUser, String> mTwitterUsersDao;
-	Dao<Tweet, Long> mTweetsDao;
 
 	public DatabaseHelper(Context context) {
 		super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -25,7 +24,6 @@ public class DatabaseHelper extends OrmLiteSqliteOpenHelper {
 	public void onCreate(SQLiteDatabase db, ConnectionSource connectionSource) {
 		try {
 			TableUtils.createTable(connectionSource, TwitterUser.class);
-			TableUtils.createTable(connectionSource, Tweet.class);
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
 		}
@@ -35,18 +33,10 @@ public class DatabaseHelper extends OrmLiteSqliteOpenHelper {
 	public void onUpgrade(SQLiteDatabase db, ConnectionSource connectionSource, int oldVersion, int newVersion) {
 		try {
 			TableUtils.dropTable(connectionSource, TwitterUser.class, true);
-			TableUtils.dropTable(connectionSource, Tweet.class, true);
 			onCreate(db, connectionSource);
 		} catch (SQLException e) {
 			throw new RuntimeException(e);
 		}
-	}
-	
-	public Dao<Tweet, Long> getTweetsDao() throws SQLException {
-		if (mTweetsDao == null) {
-			mTweetsDao = getDao(Tweet.class);
-		}
-		return mTweetsDao;
 	}
 	
 	public Dao<TwitterUser, String> getTwitterUsersDao() throws SQLException {
@@ -60,7 +50,6 @@ public class DatabaseHelper extends OrmLiteSqliteOpenHelper {
 	public void close() {
 		super.close();
 		mTwitterUsersDao = null;
-		mTweetsDao = null;
 	}
 }
 
