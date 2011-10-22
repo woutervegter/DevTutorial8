@@ -1,5 +1,5 @@
-package me.moop.mytwitter;
 
+package me.moop.mytwitter;
 import java.util.List;
 
 import org.json.JSONException;
@@ -17,10 +17,6 @@ public class TwitterUser {
 	String mId;
 	@DatabaseField
 	long mLastUpdate = 0;
-	@DatabaseField
-	long mLastTweetsUpdate = 0;
-	@ForeignCollectionField
-	ForeignCollection<Tweet> mTweets;
 	
 	@DatabaseField
 	String mWebsite;
@@ -71,23 +67,6 @@ public class TwitterUser {
 	
 	public long getLastUpdate(){
 		return mLastUpdate;
-	}
-
-	public long getLastTweetsUpdate() {
-		return mLastTweetsUpdate;
-	}
-
-	public void setLastTweetsUpdate(long lastTweetsUpdate) {
-		mLastTweetsUpdate = lastTweetsUpdate;
-	}
-
-
-	public void setTweets(List<Tweet> tweets) {
-		mTweets.addAll(tweets);
-	}
-	
-	public ForeignCollection<Tweet> getTweets(){
-		return mTweets;
 	}
 	
 	@Override
